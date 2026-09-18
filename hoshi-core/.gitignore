@@ -1,0 +1,12 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+data/*
+!data/.gitkeep
+*.log
+.daemon.lock
+.bridge.lock
+.last_wake
+daemon_status.json
+pipeline_state.json

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Yuna Desktop
+Comment=Голосовой ассистент Юна — автозапуск
+Exec=/home/hoshikojima/Documents/Projects/Yuna by.Hoshi/yuna-desktop/yuna_ctl.sh start
+Icon=/home/hoshikojima/Documents/Projects/Yuna by.Hoshi/assets/yuna.svg
+Terminal=false
+X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Delay=3

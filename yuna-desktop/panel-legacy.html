@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Юна</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --panel: #161b22;
+      --accent: #7c9eff;
+      --accent2: #b794f6;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --border: #30363d;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: radial-gradient(ellipse at top, #1a1f35 0%, var(--bg) 55%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(22,27,34,.85);
+      backdrop-filter: blur(8px);
+    }
+    header img { width: 36px; height: 36px; border-radius: 50%; }
+    header h1 { margin: 0; font-size: 1.1rem; font-weight: 600; }
+    header span { color: var(--muted); font-size: .85rem; }
+    main { flex: 1; display: grid; grid-template-columns: 1fr 280px; gap: 0; min-height: 0; }
+    #chat {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      border-right: 1px solid var(--border);
+    }
+  #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .msg {
+      max-width: 85%;
+      padding: 10px 14px;
+      border-radius: 14px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .msg.user { align-self: flex-end; background: linear-gradient(135deg, #3d5afe, #7c4dff); }
+    .msg.assistant { align-self: flex-start; background: var(--panel); border: 1px solid var(--border); }
+    .msg .meta { font-size: .7rem; color: var(--muted); margin-bottom: 4px; }
+    #composer {
+      display: flex;
+      gap: 8px;
+      padding: 12px;
+      border-top: 1px solid var(--border);
+      background: var(--panel);
+    }
+    #input {
+      flex: 1;
+      resize: none;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg);
+      color: var(--text);
+      padding: 10px 12px;
+      font: inherit;
+      min-height: 44px;
+      max-height: 120px;
+    }
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 0 16px;
+      font-weight: 600;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff;
+    }
+    button:disabled { opacity: .5; cursor: wait; }
+    aside {
+      padding: 16px;
+      overflow-y: auto;
+      background: rgba(22,27,34,.5);
+    }
+    aside h2 { font-size: .9rem; margin: 0 0 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+    label { display: block; margin-bottom: 12px; font-size: .85rem; }
+    select, input[type=text] {
+      width: 100%;
+      margin-top: 4px;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+    }
+    .toggle { display: flex; align-items: center; gap: 8px; }
+    #status { font-size: .75rem; color: var(--muted); margin-top: 8px; }
+    input[type=range] { width: 100%; accent-color: var(--accent); margin-top: 6px; }
+    input[type=color] { width: 100%; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); }
+    .tabs { display: flex; gap: 4px; margin-bottom: 14px; }
+    .tab {
+      flex: 1; padding: 7px 4px; font-size: .78rem; font-weight: 600;
+      background: var(--bg); color: var(--muted);
+      border: 1px solid var(--border); border-radius: 8px;
+    }
+    .tab.active { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; }
+    .tabpane { display: none; }
+    .tabpane.active { display: block; animation: fade .2s ease; }
+    @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; } }
+    button.ghost {
+      background: var(--bg); color: var(--accent);
+      border: 1px solid var(--accent);
+    }
+    .swatches { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+    .sw { width: 30px; height: 30px; border-radius: 50%; padding: 0; border: 2px solid transparent; }
+    .sw:hover { border-color: var(--text); }
+    #savehint { font-size: .75rem; color: var(--accent); margin-top: 8px; text-align: center; min-height: 16px; }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="/assets/yuna.svg" alt="Юна" onerror="this.style.display='none'" />
+    <div>
+      <h1>Юна <span>by Hoshi</span></h1>
+      <span id="status">единая память с Telegram</span>
+    </div>
+  </header>
+  <main>
+    <section id="chat">
+      <div id="messages"></div>
+      <div id="composer">
+        <textarea id="input" rows="1" placeholder="Спроси что угодно…"></textarea>
+        <button id="send">→</button>
+      </div>
+    </section>
+    <aside>
+      <div class="tabs">
+        <button class="tab active" data-tab="voice">Голос</button>
+        <button class="tab" data-tab="behavior">Поведение</button>
+        <button class="tab" data-tab="look">Вид</button>
+      </div>
+
+      <section class="tabpane active" data-pane="voice">
+        <h2>Голос Юны</h2>
+        <label>Движок
+          <select id="v_engine">
+            <option value="silero">Silero (живой, локальный)</option>
+            <option value="piper">Piper (локальный)</option>
+            <option value="edge">Edge-TTS (сетевой)</option>
+          </select>
+        </label>
+        <label id="wrap_speaker">Диктор Silero
+          <select id="v_speaker"></select>
+        </label>
+        <label class="toggle">
+          <input type="checkbox" id="v_rvc" />
+          Аниме-конвертация (RVC)
+        </label>
+        <div id="rvc_box" style="display:none">
+          <label>RVC-модель
+            <select id="v_model"></select>
+          </label>
+          <label>Высота тона: <span id="v_pitch_val">4</span>
+            <input type="range" id="v_pitch" min="-6" max="12" step="1" value="4" />
+          </label>
+          <label>Характер (index): <span id="v_index_val">0.6</span>
+            <input type="range" id="v_index" min="0" max="1" step="0.02" value="0.6" />
+          </label>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="v_cleanup" checked />
+          Чистка эха/шума
+        </label>
+        <label class="toggle">
+          <input type="checkbox" id="autospeak" checked />
+          Озвучивать ответы
+        </label>
+        <button id="v_test" class="ghost" style="width:100%;margin-top:6px">▶ Прослушать голос</button>
+      </section>
+
+      <section class="tabpane" data-pane="behavior">
+        <h2>Поведение</h2>
+        <label>Стиль ответов
+          <select id="reply_style">
+            <option value="short">Коротко</option>
+            <option value="balanced">Сбалансированно</option>
+            <option value="detailed">Подробно</option>
+          </select>
+        </label>
+        <label>Активный проект
+          <input type="text" id="project" placeholder="/home/.../проект" />
+        </label>
+        <label class="toggle">
+          <input type="checkbox" id="screen" />
+          Прикреплять скрин к сообщению
+        </label>
+        <label class="toggle">
+          <input type="checkbox" id="screen_watch" checked />
+          Следить за экраном
+        </label>
+        <label>Интервал слежения: <span id="si_val">18</span> сек
+          <input type="range" id="screen_interval" min="5" max="60" step="1" value="18" />
+        </label>
+      </section>
+
+      <section class="tabpane" data-pane="look">
+        <h2>Внешний вид</h2>
+        <label>Акцентный цвет
+          <input type="color" id="accent" value="#7c9eff" style="height:40px;padding:2px" />
+        </label>
+        <div class="swatches">
+          <button class="sw" data-c="#7c9eff" style="background:#7c9eff"></button>
+          <button class="sw" data-c="#b794f6" style="background:#b794f6"></button>
+          <button class="sw" data-c="#ff6ec7" style="background:#ff6ec7"></button>
+          <button class="sw" data-c="#4dd0e1" style="background:#4dd0e1"></button>
+          <button class="sw" data-c="#69f0ae" style="background:#69f0ae"></button>
+          <button class="sw" data-c="#ffab40" style="background:#ffab40"></button>
+        </div>
+      </section>
+
+      <button id="save" style="width:100%;margin-top:14px">Сохранить</button>
+      <div id="savehint"></div>
+    </aside>
+  </main>
+  <script>
+    const $ = (s) => document.querySelector(s);
+    const messages = $("#messages");
+
+    function addMsg(role, text, at) {
+      const el = document.createElement("div");
+      el.className = "msg " + role;
+      el.innerHTML = `<div class="meta">${role === "user" ? "Ты" : "Юна"} · ${at || ""}</div>${escapeHtml(text)}`;
+      messages.appendChild(el);
+      messages.scrollTop = messages.scrollHeight;
+    }
+    function escapeHtml(s) {
+      return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    }
+
+    async function loadSession() {
+      const r = await fetch("/api/session/desktop");
+      const data = await r.json();
+      const list = data.messages || [];
+      if (list.length < messages.children.length) {
+        messages.innerHTML = "";
+        window._chatSynced = 0;
+      }
+      const start = window._chatSynced || 0;
+      for (const m of list.slice(start)) {
+        addMsg(m.role, m.text, m.at);
+      }
+      window._chatSynced = list.length;
+    }
+
+    function applyAccent(hex) {
+      if (!hex) return;
+      document.documentElement.style.setProperty("--accent", hex);
+      document.documentElement.style.setProperty("--accent2", hex);
+    }
+
+    function fillSelect(sel, items, val) {
+      sel.innerHTML = "";
+      for (const it of items) {
+        const o = document.createElement("option");
+        o.value = it; o.textContent = it;
+        sel.appendChild(o);
+      }
+      if (val) sel.value = val;
+    }
+
+    function syncVoiceUi() {
+      $("#wrap_speaker").style.display = $("#v_engine").value === "silero" ? "block" : "none";
+      $("#rvc_box").style.display = $("#v_rvc").checked ? "block" : "none";
+    }
+
+    async function loadSettings() {
+      const r = await fetch("/api/settings");
+      const s = await r.json();
+      const cat = s.catalog || {};
+      const v = s.voice || {};
+      fillSelect($("#v_speaker"), cat.silero_speakers || ["baya"], v.silero_speaker);
+      fillSelect($("#v_model"), cat.rvc_models || ["yuna"], v.rvc_model);
+      $("#v_engine").value = v.engine || "silero";
+      $("#v_rvc").checked = !!v.use_rvc;
+      $("#v_pitch").value = v.rvc_pitch ?? 4;
+      $("#v_pitch_val").textContent = $("#v_pitch").value;
+      $("#v_index").value = v.rvc_index ?? 0.6;
+      $("#v_index_val").textContent = $("#v_index").value;
+      $("#v_cleanup").checked = v.cleanup_on !== false;
+      $("#autospeak").checked = !!s.voice_autospeak;
+      $("#project").value = s.active_project || "";
+      $("#reply_style").value = s.reply_style || "balanced";
+      $("#screen_watch").checked = s.screen_watch !== false;
+      $("#screen_interval").value = s.screen_interval || 18;
+      $("#si_val").textContent = $("#screen_interval").value;
+      $("#accent").value = s.accent || "#7c9eff";
+      applyAccent(s.accent);
+      syncVoiceUi();
+    }
+
+    function collectSettings() {
+      return {
+        voice_autospeak: $("#autospeak").checked,
+        active_project: $("#project").value,
+        reply_style: $("#reply_style").value,
+        screen_watch: $("#screen_watch").checked,
+        screen_interval: parseInt($("#screen_interval").value, 10),
+        accent: $("#accent").value,
+        voice: {
+          engine: $("#v_engine").value,
+          silero_speaker: $("#v_speaker").value,
+          use_rvc: $("#v_rvc").checked,
+          rvc_model: $("#v_model").value,
+          rvc_pitch: parseInt($("#v_pitch").value, 10),
+          rvc_index: parseFloat($("#v_index").value),
+          cleanup_on: $("#v_cleanup").checked,
+        },
+      };
+    }
+
+    async function health() {
+      const r = await fetch("/health");
+      const h = await r.json();
+      $("#status").textContent = h.ok
+        ? `память синхр. · ${h.messages} сообщ. · очередь ${h.pending}`
+        : "нет связи";
+    }
+
+    $("#send").onclick = async () => {
+      const text = $("#input").value.trim();
+      if (!text) return;
+      $("#send").disabled = true;
+      addMsg("user", text, new Date().toLocaleTimeString());
+      window._chatSynced = (window._chatSynced || 0) + 1;
+      $("#input").value = "";
+      await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, screen: $("#screen").checked }),
+      });
+      $("#send").disabled = false;
+      setTimeout(loadSession, 2000);
+      setTimeout(loadSession, 8000);
+    };
+
+    $("#input").addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#send").click(); }
+    });
+
+    $("#save").onclick = async () => {
+      await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(collectSettings()),
+      });
+      $("#savehint").textContent = "Сохранено ✓";
+      setTimeout(() => ($("#savehint").textContent = ""), 2000);
+      health();
+    };
+
+    // вкладки
+    document.querySelectorAll(".tab").forEach((t) => {
+      t.onclick = () => {
+        document.querySelectorAll(".tab").forEach((x) => x.classList.remove("active"));
+        document.querySelectorAll(".tabpane").forEach((x) => x.classList.remove("active"));
+        t.classList.add("active");
+        document.querySelector(`.tabpane[data-pane="${t.dataset.tab}"]`).classList.add("active");
+      };
+    });
+
+    // палитра
+    document.querySelectorAll(".sw").forEach((b) => {
+      b.onclick = () => { $("#accent").value = b.dataset.c; applyAccent(b.dataset.c); };
+    });
+    $("#accent").oninput = () => applyAccent($("#accent").value);
+
+    // слайдеры и зависимые поля
+    $("#v_pitch").oninput = () => ($("#v_pitch_val").textContent = $("#v_pitch").value);
+    $("#v_index").oninput = () => ($("#v_index_val").textContent = $("#v_index").value);
+    $("#screen_interval").oninput = () => ($("#si_val").textContent = $("#screen_interval").value);
+    $("#v_engine").onchange = syncVoiceUi;
+    $("#v_rvc").onchange = syncVoiceUi;
+
+    // тест голоса
+    $("#v_test").onclick = async () => {
+      $("#v_test").disabled = true;
+      $("#v_test").textContent = "Говорю…";
+      try {
+        await fetch("/api/voice/test", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(collectSettings()),
+        });
+      } catch (e) {}
+      $("#v_test").textContent = "▶ Прослушать голос";
+      $("#v_test").disabled = false;
+    };
+
+    loadSession();
+    loadSettings();
+    health();
+    setInterval(health, 5000);
+    setInterval(loadSession, 8000);
+  </script>
+</body>
+</html>

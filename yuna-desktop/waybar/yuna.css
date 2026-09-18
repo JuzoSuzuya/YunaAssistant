@@ -1,0 +1,43 @@
+/* Юна — логотип + живые индикаторы в Waybar */
+#custom-yuna {
+    margin-left: 14px;
+    margin-right: 6px;
+    padding: 0 10px 0 26px;
+    min-width: 28px;
+    min-height: 22px;
+    background-image: url("file:///home/hoshikojima/Documents/Projects/Yuna by.Hoshi/assets/yuna.svg");
+    background-repeat: no-repeat;
+    background-position: left center;
+    background-size: 20px 20px;
+    color: #a5b4fc;
+    font-size: 13px;
+    font-weight: 600;
+    transition: color 0.2s ease;
+}
+
+#custom-yuna.idle {
+    color: #94a3b8;
+}
+
+#custom-yuna.listening {
+    color: #7dd3fc;
+    animation: yuna-glow 1.2s ease-in-out infinite;
+}
+
+#custom-yuna.thinking {
+    color: #c4b5fd;
+}
+
+#custom-yuna.speaking {
+    color: #86efac;
+    animation: yuna-glow 0.7s ease-in-out infinite;
+}
+
+#custom-yuna.watching {
+    color: #f0abfc;
+}
+
+@keyframes yuna-glow {
+    0%, 100% { opacity: 0.85; }
+    50% { opacity: 1; }
+}

@@ -1,0 +1,45 @@
+# --- Secrets (never commit) ---
+.env
+.env.*
+!.env.example
+*.token
+*credential*
+*.key
+*.pem
+
+# --- Python ---
+__pycache__/
+*.pyc
+.venv/
+
+# --- Node / frontend ---
+node_modules/
+dist/
+
+# --- Rust toolchain ---
+target/
+.cargo/
+.rustup/
+
+# --- Logs ---
+*.log
+local_daemon.log
+yuna-desktop/logs/
+
+# --- Runtime state (hoshi-core/data/ is fully runtime; keep .gitkeep) ---
+hoshi-core/data/*
+!hoshi-core/data/.gitkeep
+
+# --- Local daemon / bridge state ---
+bridge_status.json
+local_daemon_status.json
+memory_sync_state.json
+voice_status.json
+tmp_search.txt
+
+# --- Misc runtime ---
+*.lock
+.omo/evidence/
+server-snapshot/
+# --- Runtime status files ---
+*_status.json
