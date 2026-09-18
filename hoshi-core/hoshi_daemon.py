@@ -15,6 +15,7 @@ from datetime import datetime
 from pathlib import Path
 
 from config import (
+    BOT_TOKEN,
     CURSOR_AGENT_BIN,
     CURSOR_API_KEY,
     CURSOR_HEAVY_MODEL,
@@ -1519,6 +1520,12 @@ def deliver_reply(item: dict, reply: str) -> None:
         reply = process_rich_content(reply)
     except Exception:
         pass
+    if not BOT_TOKEN:
+        log(
+            f"deliver_reply: skipped Telegram delivery — HOSHI_BOT_TOKEN not set "
+            f"(task={item.get('id', '?')})"
+        )
+        return
     extra = item.get("extra") or {}
     if extra.get("delivery") == "external_telegram":
         owner_chat = int(item.get("chat_id") or OWNER_ID)
