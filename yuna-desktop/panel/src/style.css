@@ -1,0 +1,68 @@
+/* Юна — тёмная стеклянная тема. Эволюция legacy panel/index.html:
+   база #0d1117, градиент #3d5afe→#7c4dff, backdrop-filter blur, скруглённые карточки. */
+:root {
+  --bg: #0d1117;
+  --panel: #161b22;
+  --glass: rgba(22, 27, 34, 0.72);
+  --accent: #7c9eff;
+  --accent2: #b794f6;
+  --grad: linear-gradient(135deg, #3d5afe, #7c4dff);
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --border: #30363d;
+  --ok: #69f0ae;
+  --warn: #ffab40;
+  --err: #ff6e6e;
+  --radius: 14px;
+}
+* { box-sizing: border-box; }
+html, body, #app { height: 100%; }
+body {
+  margin: 0;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background: radial-gradient(ellipse at top, #1a1f35 0%, var(--bg) 55%);
+  color: var(--text);
+}
+button {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  background: var(--grad);
+  color: #fff;
+}
+button:disabled { opacity: 0.5; cursor: wait; }
+button.ghost {
+  background: rgba(124, 158, 255, 0.08);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+input[type="text"], textarea, select {
+  width: 100%;
+  padding: 9px 11px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.88rem;
+}
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+input[type="color"] {
+  width: 100%; height: 40px; padding: 2px;
+  border: 1px solid var(--border); border-radius: 10px; background: var(--bg);
+}
+label.f { display: block; margin-bottom: 12px; font-size: 0.85rem; color: var(--text); }
+label.f > span.lbl { display: block; margin-bottom: 4px; color: var(--muted); }
+.toggle { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 0.85rem; }
+.hint { font-size: 0.78rem; color: var(--muted); }
+.card {
+  background: var(--glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+}
