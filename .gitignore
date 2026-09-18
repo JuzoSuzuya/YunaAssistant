@@ -41,5 +41,8 @@ tmp_search.txt
 *.lock
 .omo/evidence/
 server-snapshot/
+
+# --- Large model weights (exceed GitHub 100MB limit) ---
+yuna-desktop/vpt_agent/models/*.weights
 # --- Runtime status files ---
 *_status.json
