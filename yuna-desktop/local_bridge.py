@@ -41,6 +41,7 @@ from unified_storage import (  # noqa: E402
 )
 from storage import _write_json  # noqa: E402
 from yuna_status import get_status, set_component  # noqa: E402
+import command_registry  # noqa: E402
 
 log = logging.getLogger("yuna.bridge")
 PANEL = ROOT / "panel"
@@ -400,6 +401,34 @@ async def handle_panel(_req: web.Request) -> web.Response:
     return web.FileResponse(index) if index.exists() else web.Response(text="panel missing", status=404)
 
 
+async def handle_command(req: web.Request) -> web.Response:
+    """POST /api/command — dispatch text через command_registry.
+
+    {text: str} → {matched: true, command, results} | {matched: false, error}.
+    Никогда не возвращает 500: любые ошибки оборачиваются в matched:false.
+    """
+    try:
+        try:
+            body = await req.json()
+        except Exception:
+            return web.json_response({"matched": False, "error": "invalid request"})
+        text = str(body.get("text") or "").strip()
+        if not text:
+            return web.json_response({"matched": False, "error": "invalid request"})
+        command = command_registry.dispatch(text)
+        if command is None:
+            return web.json_response({"matched": False, "error": "no command matched"})
+        results = await asyncio.to_thread(command_registry.execute, command)
+        return web.json_response({
+            "matched": True,
+            "command": command,
+            "results": results,
+        })
+    except Exception as e:
+        log.exception("command dispatch failed: %s", e)
+        return web.json_response({"matched": False, "error": str(e)})
+
+
 async def poll_outbox(app: web.Application) -> None:
     """Опрос local_outbox — озвучивание ответов агента."""
     outbox = HOSHI / "data" / "local_outbox"
@@ -472,6 +501,7 @@ def main() -> None:
     app.router.add_get("/api/settings", handle_settings_get)
     app.router.add_post("/api/settings", handle_settings_post)
     app.router.add_post("/api/voice/test", handle_voice_test)
+    app.router.add_post("/api/command", handle_command)
     app.router.add_post("/api/stop", handle_stop)
     app.router.add_get("/", handle_panel)
     assets = ROOT.parent / "assets"
