@@ -6,7 +6,8 @@
 //   POST /api/chat {text, screen} -> {ok, task_id}  (async queue, reply arrives via session poll)
 //   GET/POST /api/settings        -> full settings object (schema is READ-ONLY: never drop keys)
 //   POST /api/voice/test {voice, text}
-//   POST /api/command {text}      -> added by T5; may 404 until then — callers must handle gracefully.
+//   POST /api/command {text}      -> {matched, command, results} | {matched:false, error}
+//   (GET /api/command does not exist; availability probe uses POST with a no-match string)
 
 async function req(method, path, body, timeoutMs = 10000) {
   const ctrl = new AbortController()
@@ -56,15 +57,15 @@ export const api = {
   voiceTest(payload) {
     return req('POST', '/api/voice/test', payload, 60000)
   },
-  // Command engine (T4 registry + T5 endpoint). Returns {available:false} when
-  // the endpoint is not registered yet instead of throwing.
+  // Command engine (T4 registry + T5 endpoint). The bridge exposes only
+  // POST /api/command, so availability is probed with a no-match POST.
+  // Returns {available:false} when the bridge is down instead of throwing.
   async commandList() {
     try {
-      const r = await req('GET', '/api/command', undefined, 5000)
+      const r = await req('POST', '/api/command', { text: '__yuna_probe__' }, 5000)
       return { available: true, ...r }
     } catch (e) {
-      if (e.status === 404) return { available: false, commands: [] }
-      throw e
+      return { available: false, commands: [] }
     }
   },
   async commandRun(text) {
