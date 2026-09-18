@@ -428,6 +428,51 @@ async def handle_command(req: web.Request) -> web.Response:
         log.exception("command dispatch failed: %s", e)
         return web.json_response({"matched": False, "error": str(e)})
 
+async def handle_custom_commands_get(_req: web.Request) -> web.Response:
+    """GET /api/commands/custom — список кастомных команд из custom.json.
+
+    Missing/corrupt custom.json → {ok:true, commands:[]} (никогда не 500).
+    """
+    try:
+        return web.json_response({"ok": True, "commands": command_registry.load_custom_commands()})
+    except Exception as e:
+        log.exception("custom commands get failed: %s", e)
+        return web.json_response({"ok": True, "commands": []})
+
+
+async def handle_custom_commands_post(req: web.Request) -> web.Response:
+    """POST /api/commands/custom — upsert одной команды по имени (name).
+
+    Тело: сама команда {name, patterns, actions, enabled, stop_on_error}
+    или {command: {...}}. Возвращает сохранённый список.
+    """
+    try:
+        try:
+            body = await req.json()
+        except Exception:
+            return web.json_response({"ok": False, "error": "invalid request"})
+        cmd = body.get("command") if isinstance(body, dict) and isinstance(body.get("command"), dict) else body
+        if not isinstance(cmd, dict):
+            return web.json_response({"ok": False, "error": "invalid request"})
+        res = command_registry.add_custom_command(cmd)
+        if not res.get("ok"):
+            return web.json_response({"ok": False, "error": res.get("error") or "invalid command"})
+        return web.json_response({"ok": True, "commands": command_registry.load_custom_commands()})
+    except Exception as e:
+        log.exception("custom commands post failed: %s", e)
+        return web.json_response({"ok": False, "error": str(e)})
+
+
+async def handle_custom_commands_delete(req: web.Request) -> web.Response:
+    """DELETE /api/commands/custom/<name> — удалить команду по имени."""
+    try:
+        name = req.match_info.get("name", "")
+        command_registry.remove_custom_command(name)
+        return web.json_response({"ok": True, "commands": command_registry.load_custom_commands()})
+    except Exception as e:
+        log.exception("custom commands delete failed: %s", e)
+        return web.json_response({"ok": False, "error": str(e)})
+
 
 async def poll_outbox(app: web.Application) -> None:
     """Опрос local_outbox — озвучивание ответов агента."""
@@ -502,6 +547,9 @@ def main() -> None:
     app.router.add_post("/api/settings", handle_settings_post)
     app.router.add_post("/api/voice/test", handle_voice_test)
     app.router.add_post("/api/command", handle_command)
+    app.router.add_get("/api/commands/custom", handle_custom_commands_get)
+    app.router.add_post("/api/commands/custom", handle_custom_commands_post)
+    app.router.add_delete("/api/commands/custom/{name}", handle_custom_commands_delete)
     app.router.add_post("/api/stop", handle_stop)
     app.router.add_get("/", handle_panel)
     assets = ROOT.parent / "assets"

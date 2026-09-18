@@ -7,7 +7,9 @@
 //   GET/POST /api/settings        -> full settings object (schema is READ-ONLY: never drop keys)
 //   POST /api/voice/test {voice, text}
 //   POST /api/command {text}      -> {matched, command, results} | {matched:false, error}
-//   (GET /api/command does not exist; availability probe uses POST with a no-match string)
+//   GET  /api/commands/custom     -> {ok, commands:[...]}  (custom commands from engine custom.json)
+//   POST /api/commands/custom     -> {ok, commands:[...]}  (upsert one command by name)
+//   DELETE /api/commands/custom/<name> -> {ok, commands:[...]}
 
 async function req(method, path, body, timeoutMs = 10000) {
   const ctrl = new AbortController()
@@ -57,13 +59,29 @@ export const api = {
   voiceTest(payload) {
     return req('POST', '/api/voice/test', payload, 60000)
   },
-  // Command engine (T4 registry + T5 endpoint). The bridge exposes only
-  // POST /api/command, so availability is probed with a no-match POST.
+  // Command engine (T4 registry + T5 endpoint). The bridge exposes
+  // GET/POST/DELETE /api/commands/custom for the custom-command CRUD surface.
   // Returns {available:false} when the bridge is down instead of throwing.
   async commandList() {
     try {
-      const r = await req('POST', '/api/command', { text: '__yuna_probe__' }, 5000)
-      return { available: true, ...r }
+      const r = await req('GET', '/api/commands/custom', undefined, 5000)
+      return { available: true, commands: Array.isArray(r.commands) ? r.commands : [] }
+    } catch (e) {
+      return { available: false, commands: [] }
+    }
+  },
+  async commandSave(command) {
+    try {
+      const r = await req('POST', '/api/commands/custom', command, 8000)
+      return { available: true, commands: Array.isArray(r.commands) ? r.commands : [] }
+    } catch (e) {
+      return { available: false, commands: [] }
+    }
+  },
+  async commandDelete(name) {
+    try {
+      const r = await req('DELETE', `/api/commands/custom/${encodeURIComponent(name)}`, undefined, 8000)
+      return { available: true, commands: Array.isArray(r.commands) ? r.commands : [] }
     } catch (e) {
       return { available: false, commands: [] }
     }
@@ -77,11 +95,4 @@ export const api = {
       throw e
     }
   },
-}
-
-export function esc(s) {
-  return String(s ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
 }

@@ -13,7 +13,7 @@
         <textarea v-model="draft.patternsText" rows="2" placeholder="включи музыку&#10;поставь лоуфай" />
       </label>
       <label class="f"><span class="lbl">Действия (JSON-список, порядок важен)</span>
-        <textarea v-model="draft.actionsText" rows="2" placeholder='[{"do":"music","query":"lofi"}]' />
+        <textarea v-model="draft.actionsText" rows="2" placeholder='[{"fn":"play_music","args":{"query":"lofi"}}]' />
       </label>
       <label class="toggle"><input v-model="draft.enabled" type="checkbox" /> Включена</label>
       <label class="toggle"><input v-model="draft.stop_on_error" type="checkbox" /> Останавливаться при ошибке</label>
@@ -48,9 +48,10 @@
 import { computed, reactive, ref } from 'vue'
 import { api } from '../api.js'
 
-// Data layer: prefers the bridge (/api/command, added in T5); falls back to
-// localStorage so the UI is fully usable before T5 lands and survives bridge
-// restarts. Shape mirrors the T4 schema: {name, patterns[], actions[], enabled, stop_on_error}.
+// Data layer: bridge /api/commands/custom is the source of truth (list/save/
+// delete sync to the engine's custom.json); localStorage is the offline
+// fallback so the UI survives bridge restarts. Shape mirrors the T4 schema:
+// {name, patterns[], actions[], enabled, stop_on_error}.
 const LS_KEY = 'yuna-custom-commands'
 const engine = reactive({ available: false })
 const commands = ref([])
@@ -78,7 +79,7 @@ async function refresh() {
   try {
     const r = await api.commandList()
     engine.available = !!r.available
-    if (r.available && Array.isArray(r.commands) && r.commands.length) {
+    if (r.available) {
       commands.value = r.commands
       persistLocal()
     }
@@ -111,7 +112,7 @@ function parseDraft() {
   }
 }
 
-function saveDraft() {
+async function saveDraft() {
   const cmd = parseDraft()
   if (!cmd) return
   const i = commands.value.findIndex((c) => c.name === (editing.value || cmd.name))
@@ -124,6 +125,13 @@ function saveDraft() {
     commands.value.push(cmd)
   }
   persistLocal()
+  const r = await api.commandSave(cmd)
+  if (r.available) {
+    commands.value = r.commands
+    persistLocal()
+  } else {
+    engine.available = false
+  }
   draft.name = ''
   draft.patternsText = ''
   draft.actionsText = ''
@@ -145,13 +153,27 @@ function cancelEdit() {
   draft.patternsText = ''
   draft.actionsText = ''
 }
-function toggle(c) {
+async function toggle(c) {
   c.enabled = !c.enabled
   persistLocal()
+  const r = await api.commandSave(c)
+  if (r.available) {
+    commands.value = r.commands
+    persistLocal()
+  } else {
+    engine.available = false
+  }
 }
-function remove(c) {
+async function remove(c) {
   commands.value = commands.value.filter((x) => x.name !== c.name)
   persistLocal()
+  const r = await api.commandDelete(c.name)
+  if (r.available) {
+    commands.value = r.commands
+    persistLocal()
+  } else {
+    engine.available = false
+  }
 }
 
 async function run(c) {
@@ -160,7 +182,7 @@ async function run(c) {
   try {
     const r = await api.commandRun(c.patterns?.[0] || c.name)
     if (!r.available) {
-      results.value[c.name] = 'Мост ещё не умеет выполнять (жди T5) — команда сохранена.'
+      results.value[c.name] = 'Мост не умеет выполнять команды.'
     } else if (r.matched) {
       results.value[c.name] = 'Готово ✓ ' + JSON.stringify(r.results || []).slice(0, 200)
     } else {
